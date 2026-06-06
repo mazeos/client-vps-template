@@ -98,7 +98,7 @@ PYEOF
 }
 
 # ── MCP: n8n (apunta al VPS) ──────────────────────────────────
-echo -e "  ${BOLD}[MCP 1/9] n8n${NC} — https://n8n.$DOMAIN"
+echo -e "  ${BOLD}[MCP 1/7] n8n${NC} — https://n8n.$DOMAIN"
 echo "  API Key: n8n → Settings → n8n API → Create an API key"
 echo ""
 ask "n8n API Key (Enter para saltar):"
@@ -112,7 +112,7 @@ fi
 echo ""
 
 # ── MCP: Obsidian (local) ─────────────────────────────────────
-echo -e "  ${BOLD}[MCP 2/9] Obsidian${NC} — local"
+echo -e "  ${BOLD}[MCP 2/7] Obsidian${NC} — local"
 echo "  Requiere plugin 'Local REST API' activo en Obsidian."
 echo "  API Key: Obsidian → Settings → Local REST API → API Key"
 echo ""
@@ -130,7 +130,7 @@ fi
 echo ""
 
 # ── MCP: Notion ───────────────────────────────────────────────
-echo -e "  ${BOLD}[MCP 3/9] Notion${NC}"
+echo -e "  ${BOLD}[MCP 3/7] Notion${NC}"
 echo "  API Key: https://www.notion.so/my-integrations → Nueva integración"
 echo ""
 ask "Notion API Key (Enter para saltar):"
@@ -153,38 +153,10 @@ echo ""
 warn "Google MCPs requieren configuración manual (OAuth)"
 echo ""
 
-# ── MCP: Discord ──────────────────────────────────────────────
-echo -e "  ${BOLD}[MCP 7/9] Discord${NC}"
-echo "  Bot token: https://discord.com/developers/applications → Tu bot → Token"
-echo ""
-ask "Discord Bot Token (Enter para saltar):"
-read -p "  → " DISCORD_TOKEN
-if [[ -n "$DISCORD_TOKEN" ]]; then
-  add_mcp "discord" '{"command":"npx","args":["-y","@modelcontextprotocol/server-discord"],"env":{"DISCORD_TOKEN":"'"$DISCORD_TOKEN"'"}}'
-  ok "MCP Discord configurado"
-else
-  warn "MCP Discord omitido"
-fi
-echo ""
-
-# ── MCP: Meta Ads ─────────────────────────────────────────────
-echo -e "  ${BOLD}[MCP 8/9] Meta Ads${NC}"
-echo "  Access Token: https://developers.facebook.com/tools/explorer/"
-echo ""
-ask "Meta Access Token (Enter para saltar):"
-read -p "  → " META_TOKEN
-if [[ -n "$META_TOKEN" ]]; then
-  add_mcp "meta-ads" '{"type":"http","url":"https://mcp.ads.meta.com/mcp","headers":{"Authorization":"Bearer '"$META_TOKEN"'"}}'
-  ok "MCP Meta Ads configurado"
-else
-  warn "MCP Meta Ads omitido"
-fi
-echo ""
-
 # ── MCP: GoHighLevel ──────────────────────────────────────────
-echo -e "  ${BOLD}[MCP 9/9] GoHighLevel (GHL)${NC}"
+echo -e "  ${BOLD}[MCP 7/7] GoHighLevel (GHL)${NC}"
 echo "  Requiere instalar el servidor local primero:"
-echo "  git clone https://github.com/mastanley13/ghl-mcp-server.git ~/ghl-mcp-server"
+echo "  git clone https://github.com/mastanley13/GoHighLevel-MCP.git ~/ghl-mcp-server"
 echo "  cd ~/ghl-mcp-server && npm install && npm run build"
 echo ""
 ask "GHL API Key (Enter para saltar):"

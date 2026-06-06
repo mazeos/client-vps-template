@@ -14,7 +14,7 @@ Stack completo de servidor y configuración local para operar tu negocio con IA.
 | Portainer | Gestión visual de Docker |
 | FlareSolverr | Bypass de Cloudflare para scraping |
 | Playwright | Automatización de navegador |
-| MCPs | Obsidian, n8n, Notion, Google, Discord, Meta Ads, GHL |
+| MCPs | Obsidian, n8n, Notion, Google, GHL |
 
 ## Instalación
 
@@ -63,9 +63,10 @@ https://playwright.tudominio.com → Playwright server
 | Obsidian | Local | Plugin Local REST API |
 | Notion | Externo | API Key |
 | Google Drive/Calendar/Gmail | OAuth | credentials.json |
-| Discord | Externo | Bot Token |
-| Meta Ads | HTTP oficial | Access Token |
-| GoHighLevel | Local | API Key + Location ID |
+| GoHighLevel | Local | API Key + Location ID (repo `mastanley13/GoHighLevel-MCP`) |
+
+> Notion y Google también pueden conectarse como integraciones desde `claude.ai/settings` sin instalar nada local.
+> Meta Ads y Discord no vienen en el setup — agrégalos manualmente si los necesitas.
 
 ## Creado por
 

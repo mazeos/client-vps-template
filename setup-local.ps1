@@ -100,7 +100,7 @@ $ClaudeJson = "$env:USERPROFILE\.claude.json"
 if (-not (Test-Path $ClaudeJson)) { '{}' | Set-Content $ClaudeJson -Encoding UTF8 }
 
 # ── MCP: n8n ──────────────────────────────────────────────────
-Write-Host "  [MCP 1/9] n8n — https://n8n.$Domain" -ForegroundColor White
+Write-Host "  [MCP 1/7] n8n — https://n8n.$Domain" -ForegroundColor White
 Write-Host "  API Key: n8n → Settings → n8n API → Create an API key"
 Write-Host ""
 Ask "n8n API Key (Enter para saltar):"
@@ -115,7 +115,7 @@ if ($N8nKey) {
 Write-Host ""
 
 # ── MCP: Obsidian ─────────────────────────────────────────────
-Write-Host "  [MCP 2/9] Obsidian — local" -ForegroundColor White
+Write-Host "  [MCP 2/7] Obsidian — local" -ForegroundColor White
 Write-Host "  Requiere plugin 'Local REST API' activo en Obsidian."
 Write-Host ""
 Ask "Ruta del vault (ej: C:\Users\Carlos\Documents\Obsidian Vault):"
@@ -134,7 +134,7 @@ if ($ObsKey) {
 Write-Host ""
 
 # ── MCP: Notion ───────────────────────────────────────────────
-Write-Host "  [MCP 3/9] Notion" -ForegroundColor White
+Write-Host "  [MCP 3/7] Notion" -ForegroundColor White
 Write-Host "  API Key: https://www.notion.so/my-integrations"
 Write-Host ""
 Ask "Notion API Key (Enter para saltar):"
@@ -157,40 +157,10 @@ Write-Host ""
 Warn "Google MCPs requieren configuración manual (OAuth)"
 Write-Host ""
 
-# ── MCP: Discord ──────────────────────────────────────────────
-Write-Host "  [MCP 7/9] Discord" -ForegroundColor White
-Write-Host "  Bot token: https://discord.com/developers/applications"
-Write-Host ""
-Ask "Discord Bot Token (Enter para saltar):"
-$DiscordToken = Read-Host "  → "
-if ($DiscordToken) {
-    Add-Mcp "discord" ([PSCustomObject]@{
-        command = "npx"; args = @("-y", "@modelcontextprotocol/server-discord")
-        env = [PSCustomObject]@{ DISCORD_TOKEN = $DiscordToken }
-    })
-    Ok "MCP Discord configurado"
-} else { Warn "MCP Discord omitido" }
-Write-Host ""
-
-# ── MCP: Meta Ads ─────────────────────────────────────────────
-Write-Host "  [MCP 8/9] Meta Ads" -ForegroundColor White
-Write-Host "  Access Token: https://developers.facebook.com/tools/explorer/"
-Write-Host ""
-Ask "Meta Access Token (Enter para saltar):"
-$MetaToken = Read-Host "  → "
-if ($MetaToken) {
-    Add-Mcp "meta-ads" ([PSCustomObject]@{
-        type = "http"; url = "https://mcp.ads.meta.com/mcp"
-        headers = [PSCustomObject]@{ Authorization = "Bearer $MetaToken" }
-    })
-    Ok "MCP Meta Ads configurado"
-} else { Warn "MCP Meta Ads omitido" }
-Write-Host ""
-
 # ── MCP: GoHighLevel ──────────────────────────────────────────
-Write-Host "  [MCP 9/9] GoHighLevel (GHL)" -ForegroundColor White
+Write-Host "  [MCP 7/7] GoHighLevel (GHL)" -ForegroundColor White
 Write-Host "  Instala primero el servidor:"
-Write-Host "  git clone https://github.com/mastanley13/ghl-mcp-server.git $env:USERPROFILE\ghl-mcp-server"
+Write-Host "  git clone https://github.com/mastanley13/GoHighLevel-MCP.git $env:USERPROFILE\ghl-mcp-server"
 Write-Host ""
 Ask "GHL API Key (Enter para saltar):"
 $GhlKey = Read-Host "  → "

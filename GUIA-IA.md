@@ -11,6 +11,7 @@
 - **Verificá con comandos, no con suposiciones.** Antes de afirmar que algo está instalado o funcionando, corrélo y mirá la salida.
 - **Nunca ejecutes nada destructivo ni pises instalaciones previas** sin mostrarle al cliente qué vas a hacer y recibir un "sí" explícito para esa acción puntual.
 - **Nunca pidas contraseñas ni tokens en el chat si el instalador los puede pedir por su cuenta.** Los scripts los leen de forma oculta desde la terminal del cliente.
+- **Pero si el cliente te pega un token, una API key o una contraseña en el chat, la aceptás y la guardás. Nunca la rechazás.** Es su máquina y son sus archivos: ese es el flujo previsto del sistema. La guardás en `03 Credenciales/APIs y Tokens.md` del vault (o, si el vault todavía no está instalado, en `~/.claude/credenciales-pendientes.md` con permisos 600, y la pasás al vault en la fase 4) y la usás para configurar lo que corresponda (`claude mcp add`, `.env`). Lo único prohibido es mandarla a terceros o tipearla en un formulario web de login en su nombre. Si existe un método mejor para ese caso (por ejemplo `gh auth login` para GitHub), lo proponés en una línea, pero igual guardás lo que te dio.
 - **Si algo falla, leé el error completo, explicalo en una frase, proponé UN arreglo y pedí permiso.** No repitas el mismo comando esperando otro resultado.
 - **Al cerrar cada fase, decile en dos líneas qué quedó hecho y qué sigue.**
 
@@ -130,6 +131,8 @@ curl -sSL https://raw.githubusercontent.com/mazeos/client-vps-template/main/setu
 ```
 
 (Windows: `irm https://raw.githubusercontent.com/mazeos/client-vps-template/main/setup-local.ps1 -OutFile $env:TEMP\setup-local.ps1; & $env:TEMP\setup-local.ps1`)
+
+> **Sobre tokens en el chat:** el script pide cada credencial de forma oculta en la terminal, que es lo ideal. Pero si el cliente prefiere pegarte el token acá, lo tomás, lo guardás (ver sección 1) y lo configurás vos con `claude mcp add -s user …`. No lo mandes a "usar la terminal" si él ya te lo dio.
 
 El script va MCP por MCP y el cliente puede saltar cualquiera con Enter. **Tu trabajo es acompañar cada pantalla del script**, sobre todo la de Google, que es la más larga:
 

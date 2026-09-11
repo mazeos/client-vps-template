@@ -16,6 +16,7 @@ Además: firewall (solo 22, 80, 443), rotación de logs de Docker, backup diario
 
 ## Requisitos
 
+- Cuenta de Claude (Pro, Max o Team) con Claude Code.
 - VPS con **Ubuntu 22.04 o 24.04**, mínimo **8 GB de RAM** (Supabase completo usa ~3 GB) y acceso root.
 - Un dominio con 3 registros A apuntando a la IP del VPS: `traefik`, `n8n` y `supabase`. Si usás Cloudflare, **sin proxy** (nube gris) para que Let's Encrypt pueda emitir los certificados.
 
@@ -41,7 +42,19 @@ curl -sSL https://raw.githubusercontent.com/mazeos/client-vps-template/main/setu
 irm https://raw.githubusercontent.com/mazeos/client-vps-template/main/setup-local.ps1 -OutFile $env:TEMP\setup-local.ps1; & $env:TEMP\setup-local.ps1
 ```
 
-Instala Node.js y Claude Code, y configura los MCPs que elijas: n8n (apunta a tu VPS), Notion y GoHighLevel. El MCP de Obsidian lo configura el vault template.
+Instala Claude Code y conecta los MCPs del sistema, guiándote paso a paso en cada uno:
+
+| # | MCP | Qué permite | Cómo se conecta |
+|---|---|---|---|
+| 1 | **Google Workspace**: Gmail, Calendar, Drive, Docs, Sheets | Leer, crear y editar correos, eventos, archivos, documentos y planillas | Servidores MCP oficiales de Google con tus propias credenciales OAuth (proyecto gratuito en Google Cloud, el script te guía) |
+| 2 | **n8n** | Ejecutar y editar workflows de tu VPS | Servidor MCP nativo de n8n + token |
+| 3 | **GoHighLevel** | Contactos, conversaciones, pipelines, calendarios de tu subcuenta | Servidor local compilado por el script + Private Integration Token |
+| 4 | **Meta Ads** | Campañas, conjuntos, anuncios, métricas | Conector oficial de Meta, login en el navegador |
+| 5 | **Fathom** | Transcripciones y resúmenes de tus llamadas | Conector desde claude.ai (2 clics) |
+| 6 | **Discord** | Hablar con Claude por DM desde tu bot | Plugin oficial de Claude Code + bot propio |
+| 7 | **ElevenLabs** (opcional) | Voz, audio, clonación | API key |
+
+Cada MCP se puede saltar con Enter y agregar después volviendo a correr el script. El MCP de **Obsidian** lo configura el vault template (paso 3).
 
 ### Paso 3 — El vault de Obsidian
 

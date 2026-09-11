@@ -1,215 +1,220 @@
 #!/bin/bash
-# setup-local.sh — Configura tu Mac/Linux para trabajar con el VPS
-# Instala Claude Code y configura los MCPs (n8n, Notion, GoHighLevel). El de Obsidian lo hace el vault template.
-set -e
+# setup-local.sh — Configura tu Mac/Linux para operar con Claude Code.
+# Instala Claude Code y conecta los MCPs del sistema: Google Workspace (lectura y escritura),
+# n8n, GoHighLevel, Meta Ads, Fathom, Discord y ElevenLabs (opcional).
+#   curl -sSL https://raw.githubusercontent.com/mazeos/client-vps-template/main/setup-local.sh -o setup-local.sh && bash setup-local.sh
+set -uo pipefail
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
-CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
-
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 ok()   { echo -e "${GREEN}✓${NC} $1"; }
 warn() { echo -e "${YELLOW}⚠${NC}  $1"; }
 err()  { echo -e "${RED}✗${NC} $1"; }
-step() { echo -e "\n${BOLD}${CYAN}$1${NC}"; }
+step() { echo -e "\n${BOLD}${CYAN}$1${NC}\n"; }
 ask()  { echo -e "${YELLOW}?${NC}  $1"; }
+leer() { local v; read -r -p "  → " v < /dev/tty; echo "$v"; }
+leer_secreto() { local v; read -r -s -p "  → " v < /dev/tty; echo "" >&2; echo "$v"; }
+pausa() { read -r -p "  Presioná Enter cuando esté listo..." < /dev/tty; }
+CALLBACK_PORT=33418
+GOOGLE_REDIRECT="http://localhost:$CALLBACK_PORT/callback"
 
-[[ "$OSTYPE" != "darwin"* && "$OSTYPE" != "linux-gnu"* ]] && { err "En Windows usa setup-local.ps1"; exit 1; }
+[[ "$OSTYPE" != "darwin"* && "$OSTYPE" != "linux-gnu"* ]] && { err "En Windows usá setup-local.ps1"; exit 1; }
 
 clear
 echo ""
 echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}${CYAN}║   VPS Template — Setup local (Mac)               ║${NC}"
+echo -e "${BOLD}${CYAN}║   Setup local — Claude Code + MCPs               ║${NC}"
 echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "  Instala Claude Code y configura los MCPs en tu máquina."
+echo "  Vas a conectar, en este orden:"
+echo "    1. Google Workspace (Gmail, Calendar, Drive, Docs, Sheets)"
+echo "    2. n8n de tu VPS       3. GoHighLevel       4. Meta Ads"
+echo "    5. Fathom              6. Discord           7. ElevenLabs (opcional)"
 echo ""
-read -p "  Presiona Enter para comenzar..." < /dev/tty
+echo "  Cada paso te dice qué abrir y qué copiar. Podés saltar uno con Enter y volver después."
+echo ""
+pausa
 
 # ════════════════════════════════════════════════════════════════
-step "[ PASO 1 / 4 ]  Instalar prerrequisitos"
+step "[ 1 / 9 ]  Prerrequisitos"
 # ════════════════════════════════════════════════════════════════
-echo ""
-
 if [[ "$OSTYPE" == "darwin"* ]] && ! command -v brew &>/dev/null; then
-  warn "Instalando Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  ok "Homebrew instalado"
+  warn "Instalando Homebrew..."; /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/tty
 fi
-
-if command -v python3 &>/dev/null; then
-  ok "Python 3 ($(python3 --version))"
-else
-  [[ "$OSTYPE" == "darwin"* ]] && brew install python3 || sudo apt-get install -y python3
-  ok "Python 3 instalado"
-fi
-
-if command -v node &>/dev/null; then
-  ok "Node.js ($(node --version))"
-else
-  warn "Node.js no encontrado. Instalando..."
-  [[ "$OSTYPE" == "darwin"* ]] && brew install node || { curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs; }
-  ok "Node.js instalado"
-fi
-
-if command -v claude &>/dev/null; then
-  ok "Claude Code ($(claude --version 2>/dev/null | head -1))"
-else
-  warn "Instalando Claude Code..."
-  npm install -g @anthropic-ai/claude-code
-  ok "Claude Code instalado"
-fi
-
-# ════════════════════════════════════════════════════════════════
-step "[ PASO 2 / 4 ]  Datos de tu servidor"
-# ════════════════════════════════════════════════════════════════
-echo ""
-echo "  Ingresa los datos del VPS que acabas de configurar."
-echo ""
-
-ask "Dominio principal del VPS (ej: miempresa.com):"
-read -p "  → " DOMAIN < /dev/tty
-while [[ -z "$DOMAIN" ]]; do
-  err "No puede estar vacío."; read -p "  → " DOMAIN < /dev/tty
-done
-
-ask "IP del VPS (para configurar SSH):"
-read -p "  → " VPS_IP < /dev/tty
-
-# ════════════════════════════════════════════════════════════════
-step "[ PASO 3 / 4 ]  Configurar MCPs"
-# ════════════════════════════════════════════════════════════════
-echo ""
-echo "  Configura los MCPs uno por uno."
-echo "  Presiona Enter para saltar cualquiera y configurarlo después."
-echo ""
-
-CLAUDE_JSON="$HOME/.claude.json"
-[[ ! -f "$CLAUDE_JSON" ]] && echo '{}' > "$CLAUDE_JSON"
-
-add_mcp() {
-  local name="$1"; local config="$2"
-  python3 - <<PYEOF
-import json
-from pathlib import Path
-p = Path("$CLAUDE_JSON")
-c = json.loads(p.read_text())
-c.setdefault("mcpServers", {})["$name"] = $config
-p.write_text(json.dumps(c, indent=2, ensure_ascii=False))
-PYEOF
-}
-
-# ── MCP: n8n (apunta al VPS) ──────────────────────────────────
-echo -e "  ${BOLD}[MCP 1/7] n8n${NC} — https://n8n.$DOMAIN"
-echo "  API Key: n8n → Settings → n8n API → Create an API key"
-echo ""
-ask "n8n API Key (Enter para saltar):"
-read -p "  → " N8N_KEY < /dev/tty
-if [[ -n "$N8N_KEY" ]]; then
-  add_mcp "n8n" '{"command":"npx","args":["-y","n8n-mcp-server"],"env":{"N8N_URL":"https://n8n.'"$DOMAIN"'","N8N_API_KEY":"'"$N8N_KEY"'"}}'
-  ok "MCP n8n configurado → https://n8n.$DOMAIN"
-else
-  warn "MCP n8n omitido"
-fi
-echo ""
-
-# ── MCP: Obsidian (local) ─────────────────────────────────────
-echo -e "  ${BOLD}[MCP 2/7] Obsidian${NC} — local"
-echo "  Si vas a instalar el vault template, SALTÁ este paso (lo configura él)."
-echo "  Requiere plugin 'Local REST API' activo en Obsidian."
-echo "  API Key: Obsidian → Settings → Local REST API → API Key"
-echo ""
-ask "Ruta de tu vault de Obsidian (ej: ~/Documents/Obsidian Vault):"
-read -p "  → " VAULT_PATH < /dev/tty
-VAULT_PATH="${VAULT_PATH:-$HOME/Documents/Obsidian Vault}"
-ask "Obsidian API Key (Enter para saltar):"
-read -p "  → " OBS_KEY < /dev/tty
-if [[ -n "$OBS_KEY" ]]; then
-  add_mcp "obsidian" '{"command":"npx","args":["-y","mcp-obsidian","'"$VAULT_PATH"'"],"env":{"OBSIDIAN_API_KEY":"'"$OBS_KEY"'"}}'
-  ok "MCP Obsidian configurado"
-else
-  warn "MCP Obsidian omitido"
-fi
-echo ""
-
-# ── MCP: Notion ───────────────────────────────────────────────
-echo -e "  ${BOLD}[MCP 3/7] Notion${NC}"
-echo "  API Key: https://www.notion.so/my-integrations → Nueva integración"
-echo ""
-ask "Notion API Key (Enter para saltar):"
-read -p "  → " NOTION_KEY < /dev/tty
-if [[ -n "$NOTION_KEY" ]]; then
-  add_mcp "notion" '{"command":"npx","args":["-y","@notionhq/notion-mcp-server"],"env":{"OPENAPI_MCP_HEADERS":"{\"Authorization\":\"Bearer '"$NOTION_KEY"'\",\"Notion-Version\":\"2022-06-28\"}"}}'
-  ok "MCP Notion configurado"
-else
-  warn "MCP Notion omitido"
-fi
-echo ""
-
-# ── MCP: Google Drive / Calendar / Gmail ──────────────────────
-echo -e "  ${BOLD}[MCP 4-6] Google Drive, Calendar y Gmail${NC}"
-echo "  Requieren OAuth — pasos:"
-echo "  1. https://console.cloud.google.com/apis/credentials"
-echo "  2. Crear credenciales → Aplicación de escritorio → descargar credentials.json"
-echo "  3. Agrega manualmente a ~/.claude.json después de la instalación"
-echo ""
-warn "Google MCPs requieren configuración manual (OAuth)"
-echo ""
-
-# ── MCP: GoHighLevel ──────────────────────────────────────────
-echo -e "  ${BOLD}[MCP 7/7] GoHighLevel (GHL)${NC}"
-echo "  Requiere instalar el servidor local primero:"
-echo "  git clone https://github.com/mastanley13/GoHighLevel-MCP.git ~/ghl-mcp-server"
-echo "  cd ~/ghl-mcp-server && npm install && npm run build"
-echo ""
-ask "GHL API Key (Enter para saltar):"
-read -p "  → " GHL_KEY < /dev/tty
-if [[ -n "$GHL_KEY" ]]; then
-  ask "GHL Location ID:"
-  read -p "  → " GHL_LOC < /dev/tty
-  if [[ -n "$GHL_LOC" ]]; then
-    add_mcp "ghl" '{"command":"node","args":["'"$HOME"'/ghl-mcp-server/dist/server.js"],"env":{"GHL_API_KEY":"'"$GHL_KEY"'","GHL_LOCATION_ID":"'"$GHL_LOC"'"}}'
-    ok "MCP GHL configurado"
+for tool in git python3 node; do
+  if command -v $tool &>/dev/null; then ok "$tool ($($tool --version 2>&1 | head -1 | awk '{print $NF}'))"
   else
-    warn "MCP GHL omitido — falta Location ID"
+    warn "Instalando $tool..."
+    if [[ "$OSTYPE" == "darwin"* ]]; then brew install $tool; else sudo apt-get install -y $tool; fi
   fi
-else
-  warn "MCP GHL omitido"
-fi
+done
+if command -v claude &>/dev/null; then ok "Claude Code ($(claude --version 2>/dev/null | head -1))"
+else warn "Instalando Claude Code..."; npm install -g @anthropic-ai/claude-code && ok "Claude Code instalado"; fi
 echo ""
+echo "  Si todavía no iniciaste sesión en Claude Code, abrí otra terminal, corré 'claude' y seguí el login."
+pausa
 
 # ════════════════════════════════════════════════════════════════
-step "[ PASO 4 / 4 ]  Verificación final"
+step "[ 2 / 9 ]  Datos de tu servidor"
 # ════════════════════════════════════════════════════════════════
+ask "Dominio base de tu VPS (ej: miempresa.com):"; DOMAIN="$(leer)"
+while [[ -z "$DOMAIN" ]]; do err "No puede estar vacío."; DOMAIN="$(leer)"; done
+
+# ════════════════════════════════════════════════════════════════
+step "[ 3 / 9 ]  Google Workspace — Gmail, Calendar, Drive, Docs y Sheets (lectura y escritura)"
+# ════════════════════════════════════════════════════════════════
+echo "  Google publica servidores MCP oficiales. Necesitás credenciales OAuth propias (gratis, 10 minutos):"
 echo ""
-
-ERRORS=0
-command -v claude &>/dev/null && ok "Claude Code instalado" || { err "Claude Code no encontrado"; ERRORS=$((ERRORS+1)); }
-[[ -f "$CLAUDE_JSON" ]] && ok "~/.claude.json presente" || { err "~/.claude.json no encontrado"; ERRORS=$((ERRORS+1)); }
-
-MCP_COUNT=$(python3 -c "
-import json
-from pathlib import Path
-p = Path('$CLAUDE_JSON')
-c = json.loads(p.read_text())
-print(len(c.get('mcpServers', {})))
-" 2>/dev/null || echo 0)
-ok "$MCP_COUNT MCP(s) configurados"
-
+echo "  1. Entrá a https://console.cloud.google.com y creá un proyecto (ej: 'Claude Code')."
+echo "  2. APIs y servicios → Biblioteca: habilitá Gmail API, Google Drive API, Google Docs API,"
+echo "     Google Sheets API y Google Calendar API."
+echo "  3. En la misma Biblioteca habilitá también los servicios MCP: 'Gmail MCP', 'Drive MCP',"
+echo "     'Docs MCP', 'Sheets MCP' y 'Calendar MCP' (buscá 'MCP')."
+echo "  4. APIs y servicios → Pantalla de consentimiento OAuth: tipo Externo, agregá tu email como usuario de prueba."
+echo "  5. APIs y servicios → Credenciales → Crear credenciales → ID de cliente OAuth → Aplicación web."
+echo "     En 'URI de redireccionamiento autorizados' agregá EXACTAMENTE estos dos:"
+echo -e "        ${BOLD}$GOOGLE_REDIRECT${NC}"
+echo -e "        ${BOLD}https://claude.ai/api/mcp/auth_callback${NC}"
+echo "  6. Copiá el ID de cliente y el secreto."
 echo ""
-if [[ $ERRORS -eq 0 ]]; then
-  echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════════╗${NC}"
-  echo -e "${GREEN}${BOLD}║   ✅  Setup local completado                     ║${NC}"
-  echo -e "${GREEN}${BOLD}╚══════════════════════════════════════════════════╝${NC}"
+ask "ID de cliente OAuth de Google (Enter para saltar Google):"; GOOGLE_CLIENT_ID="$(leer)"
+if [[ -n "$GOOGLE_CLIENT_ID" ]]; then
+  ask "Secreto del cliente OAuth:"; GOOGLE_CLIENT_SECRET="$(leer_secreto)"
+  declare -a GOOGLE_MCPS=(
+    "gmail|https://gmailmcp.googleapis.com/mcp/v1"
+    "google-calendar|https://calendarmcp.googleapis.com/mcp/v1"
+    "google-drive|https://drivemcp.googleapis.com/mcp/v1"
+    "google-docs|https://docsmcp.googleapis.com/mcp/v1"
+    "google-sheets|https://sheetsmcp.googleapis.com/mcp/v1"
+  )
+  for par in "${GOOGLE_MCPS[@]}"; do
+    nombre="${par%%|*}"; url="${par#*|}"
+    claude mcp remove -s user "$nombre" >/dev/null 2>&1 || true
+    MCP_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET" claude mcp add --transport http -s user \
+      --client-id "$GOOGLE_CLIENT_ID" --client-secret --callback-port "$CALLBACK_PORT" \
+      "$nombre" "$url" >/dev/null && ok "MCP $nombre registrado"
+  done
+  echo ""
+  echo "  Ahora se abre el navegador 5 veces (una por servicio) para que autorices tu cuenta de Google."
+  pausa
+  for par in "${GOOGLE_MCPS[@]}"; do
+    nombre="${par%%|*}"
+    claude mcp login "$nombre" < /dev/tty && ok "$nombre autorizado" || warn "$nombre: autorización pendiente (corré: claude mcp login $nombre)"
+  done
 else
-  echo -e "${YELLOW}${BOLD}╔══════════════════════════════════════════════════╗${NC}"
-  echo -e "${YELLOW}${BOLD}║   ⚠️   Completado con $ERRORS error(s)                    ║${NC}"
-  echo -e "${YELLOW}${BOLD}╚══════════════════════════════════════════════════╝${NC}"
+  warn "Google omitido. Después: volvé a correr este script o seguí el README."
 fi
 
+# ════════════════════════════════════════════════════════════════
+step "[ 4 / 9 ]  n8n — tu instancia en https://n8n.$DOMAIN"
+# ════════════════════════════════════════════════════════════════
+echo "  1. Entrá a https://n8n.$DOMAIN → Settings → Instance-level MCP → 'Enable MCP access'."
+echo "  2. Botón 'Connect a client' → pestaña API key → copiá el token."
+echo "  3. Cada workflow que quieras que Claude pueda usar: menú del workflow → Settings → 'Available in MCP'."
+echo ""
+ask "Token MCP de n8n (Enter para saltar):"; N8N_TOKEN="$(leer_secreto)"
+if [[ -n "$N8N_TOKEN" ]]; then
+  claude mcp remove -s user n8n >/dev/null 2>&1 || true
+  claude mcp add --transport http -s user n8n "https://n8n.$DOMAIN/mcp-server/http" \
+    --header "Authorization: Bearer $N8N_TOKEN" >/dev/null && ok "MCP n8n → https://n8n.$DOMAIN"
+else warn "n8n omitido"; fi
+
+# ════════════════════════════════════════════════════════════════
+step "[ 5 / 9 ]  GoHighLevel"
+# ════════════════════════════════════════════════════════════════
+echo "  En GHL: Settings de la subcuenta → Private Integrations → crear una con todos los scopes → copiá el token."
+echo "  El Location ID está en Settings → Business Profile."
+echo ""
+ask "Private Integration Token de GHL (Enter para saltar):"; GHL_KEY="$(leer_secreto)"
+if [[ -n "$GHL_KEY" ]]; then
+  ask "Location ID de la subcuenta:"; GHL_LOC="$(leer)"
+  if [[ ! -f "$HOME/ghl-mcp-server/dist/server.js" ]]; then
+    warn "Instalando el servidor MCP de GHL (1-2 minutos)..."
+    rm -rf "$HOME/ghl-mcp-server"
+    git clone -q https://github.com/mastanley13/GoHighLevel-MCP.git "$HOME/ghl-mcp-server" \
+      && (cd "$HOME/ghl-mcp-server" && npm install --silent && npm run build --silent) \
+      && ok "Servidor GHL compilado en ~/ghl-mcp-server" || err "Falló la compilación del servidor GHL"
+  fi
+  if [[ -f "$HOME/ghl-mcp-server/dist/server.js" ]]; then
+    claude mcp remove -s user ghl >/dev/null 2>&1 || true
+    claude mcp add -s user ghl -e "GHL_API_KEY=$GHL_KEY" -e "GHL_LOCATION_ID=$GHL_LOC" \
+      -- node "$HOME/ghl-mcp-server/dist/server.js" >/dev/null && ok "MCP GHL configurado (subcuenta $GHL_LOC)"
+  fi
+else warn "GHL omitido"; fi
+
+# ════════════════════════════════════════════════════════════════
+step "[ 6 / 9 ]  Meta Ads (conector oficial de Meta)"
+# ════════════════════════════════════════════════════════════════
+echo "  Requisito: tu cuenta publicitaria dentro de un Business Manager al que tengas acceso."
+echo "  Se abre el navegador para iniciar sesión en Meta."
+echo ""
+ask "¿Conectar Meta Ads ahora? [S/n]:"; R="$(leer)"
+if [[ ! "${R:-S}" =~ ^[nN] ]]; then
+  claude mcp remove -s user meta-ads >/dev/null 2>&1 || true
+  claude mcp add --transport http -s user meta-ads https://mcp.facebook.com/ads >/dev/null && ok "MCP meta-ads registrado"
+  claude mcp login meta-ads < /dev/tty && ok "Meta Ads autorizado" || warn "Meta Ads: autorización pendiente (claude mcp login meta-ads)"
+else warn "Meta Ads omitido"; fi
+
+# ════════════════════════════════════════════════════════════════
+step "[ 7 / 9 ]  Fathom (grabación y transcripción de llamadas)"
+# ════════════════════════════════════════════════════════════════
+echo "  Fathom se conecta desde claude.ai y Claude Code lo toma solo:"
+echo "  1. Abrí https://claude.ai/settings/connectors"
+echo "  2. Buscá 'Fathom' → Connect → autorizá tu cuenta de Fathom."
+echo "  (Ahí mismo podés sumar Notion si lo usás.)"
+echo ""
+pausa
+
+# ════════════════════════════════════════════════════════════════
+step "[ 8 / 9 ]  Discord (Claude te responde por DM desde tu bot)"
+# ════════════════════════════════════════════════════════════════
+echo "  1. https://discord.com/developers/applications → New Application → nombre."
+echo "  2. Bot → activá 'Message Content Intent' → Reset Token → copiá el token."
+echo "  3. OAuth2 → URL Generator → scope 'bot' → permisos: View Channels, Send Messages,"
+echo "     Send Messages in Threads, Read Message History, Attach Files, Add Reactions."
+echo "     Abrí la URL generada y agregá el bot a un servidor tuyo."
+echo ""
+ask "Token del bot de Discord (Enter para saltar):"; DISCORD_TOKEN="$(leer_secreto)"
+if [[ -n "$DISCORD_TOKEN" ]]; then
+  if ! command -v bun &>/dev/null && [[ ! -x "$HOME/.bun/bin/bun" ]]; then
+    warn "Instalando Bun..."; curl -fsSL https://bun.sh/install | bash >/dev/null 2>&1
+  fi
+  export PATH="$HOME/.bun/bin:$PATH"
+  claude plugin install discord@claude-plugins-official >/dev/null 2>&1 && ok "Plugin de Discord instalado" || warn "El plugin se instala desde Claude Code: /plugin install discord@claude-plugins-official"
+  mkdir -p "$HOME/.claude/channels/discord"
+  echo "DISCORD_BOT_TOKEN=$DISCORD_TOKEN" > "$HOME/.claude/channels/discord/.env"; chmod 600 "$HOME/.claude/channels/discord/.env"
+  ok "Token guardado en ~/.claude/channels/discord/.env"
+  DISCORD_LISTO=1
+else warn "Discord omitido"; DISCORD_LISTO=0; fi
+
+# ════════════════════════════════════════════════════════════════
+step "[ 9 / 9 ]  ElevenLabs (opcional — voz y audio)"
+# ════════════════════════════════════════════════════════════════
+ask "API key de ElevenLabs (Enter para saltar):"; EL_KEY="$(leer_secreto)"
+if [[ -n "$EL_KEY" ]]; then
+  if ! command -v uvx &>/dev/null; then
+    warn "Instalando uv..."; curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null 2>&1; export PATH="$HOME/.local/bin:$PATH"
+  fi
+  UVX="$(command -v uvx || echo "$HOME/.local/bin/uvx")"
+  claude mcp remove -s user elevenlabs >/dev/null 2>&1 || true
+  claude mcp add -s user elevenlabs -e "ELEVENLABS_API_KEY=$EL_KEY" -- "$UVX" elevenlabs-mcp >/dev/null && ok "MCP ElevenLabs configurado"
+else warn "ElevenLabs omitido"; fi
+
+# ════════════════════════════════════════════════════════════════
+step "Verificación"
+# ════════════════════════════════════════════════════════════════
+claude mcp list 2>/dev/null | grep -vE "^Checking|^$" | sed 's/^/  /'
+echo ""
+echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}${BOLD}║   ✅  Setup local completado                     ║${NC}"
+echo -e "${GREEN}${BOLD}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${BOLD}  Próximos pasos:${NC}"
-echo "  1. Verifica MCPs activos: claude mcp list"
-echo "  2. Configura tu vault de Obsidian:"
+echo "  1. Si algún MCP dice 'Needs authentication': claude mcp login <nombre>"
+if [[ "${DISCORD_LISTO:-0}" == "1" ]]; then
+echo "  2. Discord: abrí Claude Code con   claude --channels plugin:discord@claude-plugins-official"
+echo "     mandale un DM a tu bot, te contesta un código, y en Claude Code:  /discord:access pair <código>"
+echo "     Después:  /discord:access policy allowlist"
+fi
+echo "  3. Instalá el vault de Obsidian:"
 echo "     curl -sSL https://raw.githubusercontent.com/mazeos/client-vault-template/main/setup.sh -o setup-vault.sh && bash setup-vault.sh"
-echo "  3. Corre: claude"
 echo ""
-[[ -n "$VPS_IP" ]] && echo -e "  Tu VPS: ${BOLD}$VPS_IP${NC} | Dominio: ${BOLD}$DOMAIN${NC}" && echo ""

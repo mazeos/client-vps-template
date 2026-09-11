@@ -1,6 +1,6 @@
 # setup-local.ps1 — Configura tu Windows para operar con Claude Code.
 # Instala Claude Code y conecta los MCPs del sistema: Google Workspace (lectura y escritura),
-# n8n, GoHighLevel, Meta Ads, Fathom, Discord y ElevenLabs (opcional).
+# n8n, GoHighLevel, Meta Ads, Apify, Fathom, Discord y ElevenLabs (opcional).
 # PowerShell como Administrador:
 #   irm https://raw.githubusercontent.com/mazeos/client-vps-template/main/setup-local.ps1 -OutFile $env:TEMP\setup-local.ps1; & $env:TEMP\setup-local.ps1
 $ErrorActionPreference = "Continue"
@@ -26,13 +26,13 @@ Write-Host "==================================================" -ForegroundColor
 Write-Host ""
 Write-Host "  Vas a conectar, en este orden:"
 Write-Host "    1. Google Workspace (Gmail, Calendar, Drive, Docs, Sheets)"
-Write-Host "    2. n8n de tu VPS       3. GoHighLevel       4. Meta Ads"
-Write-Host "    5. Fathom              6. Discord           7. ElevenLabs (opcional)"
+Write-Host "    2. n8n de tu VPS       3. GoHighLevel       4. Meta Ads       5. Apify"
+Write-Host "    6. Fathom              7. Discord           8. ElevenLabs (opcional)"
 Write-Host ""
 Pausa
 
 # ---------------------------------------------------------------
-Step "[ 1 / 9 ]  Prerrequisitos"
+Step "[ 1 / 10 ]  Prerrequisitos"
 # ---------------------------------------------------------------
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Err "Falta winget (App Installer de la Microsoft Store). Instalalo y volve a correr."; exit 1 }
 foreach ($t in @(@{cmd="git"; id="Git.Git"}, @{cmd="node"; id="OpenJS.NodeJS.LTS"}, @{cmd="python"; id="Python.Python.3.12"})) {
@@ -46,13 +46,13 @@ Write-Host "  Si todavia no iniciaste sesion en Claude Code, abri otra terminal,
 Pausa
 
 # ---------------------------------------------------------------
-Step "[ 2 / 9 ]  Datos de tu servidor"
+Step "[ 2 / 10 ]  Datos de tu servidor"
 # ---------------------------------------------------------------
 Ask "Dominio base de tu VPS (ej: miempresa.com):"; $Domain = Leer
 while (-not $Domain) { Err "No puede estar vacio."; $Domain = Leer }
 
 # ---------------------------------------------------------------
-Step "[ 3 / 9 ]  Google Workspace - Gmail, Calendar, Drive, Docs y Sheets (lectura y escritura)"
+Step "[ 3 / 10 ]  Google Workspace - Gmail, Calendar, Drive, Docs y Sheets (lectura y escritura)"
 # ---------------------------------------------------------------
 Write-Host "  Google publica servidores MCP oficiales. Necesitas credenciales OAuth propias (gratis, 10 minutos):"
 Write-Host ""
@@ -92,7 +92,7 @@ if ($GClientId) {
 } else { Warn "Google omitido." }
 
 # ---------------------------------------------------------------
-Step "[ 4 / 9 ]  n8n - tu instancia en https://n8n.$Domain"
+Step "[ 4 / 10 ]  n8n - tu instancia en https://n8n.$Domain"
 # ---------------------------------------------------------------
 Write-Host "  1. Entra a https://n8n.$Domain -> Settings -> Instance-level MCP -> 'Enable MCP access'."
 Write-Host "  2. Boton 'Connect a client' -> pestana API key -> copia el token."
@@ -106,7 +106,7 @@ if ($N8nToken) {
 } else { Warn "n8n omitido" }
 
 # ---------------------------------------------------------------
-Step "[ 5 / 9 ]  GoHighLevel"
+Step "[ 5 / 10 ]  GoHighLevel"
 # ---------------------------------------------------------------
 Write-Host "  En GHL: Settings de la subcuenta -> Private Integrations -> crear una con todos los scopes -> copia el token."
 Write-Host "  El Location ID esta en Settings -> Business Profile."
@@ -129,7 +129,7 @@ if ($GhlKey) {
 } else { Warn "GHL omitido" }
 
 # ---------------------------------------------------------------
-Step "[ 6 / 9 ]  Meta Ads (conector oficial de Meta)"
+Step "[ 6 / 10 ]  Meta Ads (conector oficial de Meta)"
 # ---------------------------------------------------------------
 Write-Host "  Requisito: tu cuenta publicitaria dentro de un Business Manager al que tengas acceso."
 Ask "Conectar Meta Ads ahora? [S/n]:"; $R = Leer
@@ -140,7 +140,20 @@ if ($R -notmatch '^[nN]') {
 } else { Warn "Meta Ads omitido" }
 
 # ---------------------------------------------------------------
-Step "[ 7 / 9 ]  Fathom (grabacion y transcripcion de llamadas)"
+Step "[ 7 / 10 ]  Apify (scraping e inteligencia competitiva)"
+# ---------------------------------------------------------------
+Write-Host "  Apify corre los scrapers (Instagram, TikTok, Google, Meta Ad Library...) que alimentan la inteligencia."
+Write-Host "  Token: https://console.apify.com/settings/integrations -> API tokens -> copia el token."
+Write-Host ""
+Ask "Token de API de Apify (Enter para saltar):"; $ApifyToken = LeerSecreto
+if ($ApifyToken) {
+  & claude mcp remove -s user apify 2>$null | Out-Null
+  & claude mcp add --transport http -s user apify "https://mcp.apify.com" --header "Authorization: Bearer $ApifyToken" | Out-Null
+  Ok "MCP Apify configurado"
+} else { Warn "Apify omitido" }
+
+# ---------------------------------------------------------------
+Step "[ 8 / 10 ]  Fathom (grabacion y transcripcion de llamadas)"
 # ---------------------------------------------------------------
 Write-Host "  1. Abri https://claude.ai/settings/connectors"
 Write-Host "  2. Busca 'Fathom' -> Connect -> autoriza tu cuenta. (Ahi mismo podes sumar Notion si lo usas.)"
@@ -148,7 +161,7 @@ Write-Host ""
 Pausa
 
 # ---------------------------------------------------------------
-Step "[ 8 / 9 ]  Discord (Claude te responde por DM desde tu bot)"
+Step "[ 9 / 10 ]  Discord (Claude te responde por DM desde tu bot)"
 # ---------------------------------------------------------------
 Write-Host "  1. https://discord.com/developers/applications -> New Application -> nombre."
 Write-Host "  2. Bot -> activa 'Message Content Intent' -> Reset Token -> copia el token."
@@ -168,7 +181,7 @@ if ($DiscordToken) {
 } else { Warn "Discord omitido" }
 
 # ---------------------------------------------------------------
-Step "[ 9 / 9 ]  ElevenLabs (opcional - voz y audio)"
+Step "[ 10 / 10 ]  ElevenLabs (opcional - voz y audio)"
 # ---------------------------------------------------------------
 Ask "API key de ElevenLabs (Enter para saltar):"; $ElKey = LeerSecreto
 if ($ElKey) {

@@ -50,9 +50,10 @@ Instala Claude Code y conecta los MCPs del sistema, guiándote paso a paso en ca
 | 2 | **n8n** | Ejecutar y editar workflows de tu VPS | Servidor MCP nativo de n8n + token |
 | 3 | **GoHighLevel** | Contactos, conversaciones, pipelines, calendarios de tu subcuenta | Servidor local compilado por el script + Private Integration Token |
 | 4 | **Meta Ads** | Campañas, conjuntos, anuncios, métricas | Conector oficial de Meta, login en el navegador |
-| 5 | **Fathom** | Transcripciones y resúmenes de tus llamadas | Conector desde claude.ai (2 clics) |
-| 6 | **Discord** | Hablar con Claude por DM desde tu bot | Plugin oficial de Claude Code + bot propio |
-| 7 | **ElevenLabs** (opcional) | Voz, audio, clonación | API key |
+| 5 | **Apify** | Scrapers de Instagram, TikTok, Google, Meta Ad Library para inteligencia competitiva | Servidor MCP oficial de Apify + token de API |
+| 6 | **Fathom** | Transcripciones y resúmenes de tus llamadas | Conector desde claude.ai (2 clics) |
+| 7 | **Discord** | Hablar con Claude por DM desde tu bot | Plugin oficial de Claude Code + bot propio |
+| 8 | **ElevenLabs** (opcional) | Voz, audio, clonación | API key |
 
 Cada MCP se puede saltar con Enter y agregar después volviendo a correr el script. El MCP de **Obsidian** lo configura el vault template (paso 3).
 

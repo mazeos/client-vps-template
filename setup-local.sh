@@ -1,7 +1,7 @@
 #!/bin/bash
 # setup-local.sh — Configura tu Mac/Linux para operar con Claude Code.
 # Instala Claude Code y conecta los MCPs del sistema: Google Workspace (lectura y escritura),
-# n8n, GoHighLevel, Meta Ads, Fathom, Discord y ElevenLabs (opcional).
+# n8n, GoHighLevel, Meta Ads, Apify, Fathom, Discord y ElevenLabs (opcional).
 #   curl -sSL https://raw.githubusercontent.com/mazeos/client-vps-template/main/setup-local.sh -o setup-local.sh && bash setup-local.sh
 set -uo pipefail
 
@@ -27,15 +27,15 @@ echo -e "${BOLD}${CYAN}╚══════════════════
 echo ""
 echo "  Vas a conectar, en este orden:"
 echo "    1. Google Workspace (Gmail, Calendar, Drive, Docs, Sheets)"
-echo "    2. n8n de tu VPS       3. GoHighLevel       4. Meta Ads"
-echo "    5. Fathom              6. Discord           7. ElevenLabs (opcional)"
+echo "    2. n8n de tu VPS       3. GoHighLevel       4. Meta Ads       5. Apify"
+echo "    6. Fathom              7. Discord           8. ElevenLabs (opcional)"
 echo ""
 echo "  Cada paso te dice qué abrir y qué copiar. Podés saltar uno con Enter y volver después."
 echo ""
 pausa
 
 # ════════════════════════════════════════════════════════════════
-step "[ 1 / 9 ]  Prerrequisitos"
+step "[ 1 / 10 ]  Prerrequisitos"
 # ════════════════════════════════════════════════════════════════
 if [[ "$OSTYPE" == "darwin"* ]] && ! command -v brew &>/dev/null; then
   warn "Instalando Homebrew..."; /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/tty
@@ -54,13 +54,13 @@ echo "  Si todavía no iniciaste sesión en Claude Code, abrí otra terminal, co
 pausa
 
 # ════════════════════════════════════════════════════════════════
-step "[ 2 / 9 ]  Datos de tu servidor"
+step "[ 2 / 10 ]  Datos de tu servidor"
 # ════════════════════════════════════════════════════════════════
 ask "Dominio base de tu VPS (ej: miempresa.com):"; DOMAIN="$(leer)"
 while [[ -z "$DOMAIN" ]]; do err "No puede estar vacío."; DOMAIN="$(leer)"; done
 
 # ════════════════════════════════════════════════════════════════
-step "[ 3 / 9 ]  Google Workspace — Gmail, Calendar, Drive, Docs y Sheets (lectura y escritura)"
+step "[ 3 / 10 ]  Google Workspace — Gmail, Calendar, Drive, Docs y Sheets (lectura y escritura)"
 # ════════════════════════════════════════════════════════════════
 echo "  Google publica servidores MCP oficiales. Necesitás credenciales OAuth propias (gratis, 10 minutos):"
 echo ""
@@ -105,7 +105,7 @@ else
 fi
 
 # ════════════════════════════════════════════════════════════════
-step "[ 4 / 9 ]  n8n — tu instancia en https://n8n.$DOMAIN"
+step "[ 4 / 10 ]  n8n — tu instancia en https://n8n.$DOMAIN"
 # ════════════════════════════════════════════════════════════════
 echo "  1. Entrá a https://n8n.$DOMAIN → Settings → Instance-level MCP → 'Enable MCP access'."
 echo "  2. Botón 'Connect a client' → pestaña API key → copiá el token."
@@ -119,7 +119,7 @@ if [[ -n "$N8N_TOKEN" ]]; then
 else warn "n8n omitido"; fi
 
 # ════════════════════════════════════════════════════════════════
-step "[ 5 / 9 ]  GoHighLevel"
+step "[ 5 / 10 ]  GoHighLevel"
 # ════════════════════════════════════════════════════════════════
 echo "  En GHL: Settings de la subcuenta → Private Integrations → crear una con todos los scopes → copiá el token."
 echo "  El Location ID está en Settings → Business Profile."
@@ -142,7 +142,7 @@ if [[ -n "$GHL_KEY" ]]; then
 else warn "GHL omitido"; fi
 
 # ════════════════════════════════════════════════════════════════
-step "[ 6 / 9 ]  Meta Ads (conector oficial de Meta)"
+step "[ 6 / 10 ]  Meta Ads (conector oficial de Meta)"
 # ════════════════════════════════════════════════════════════════
 echo "  Requisito: tu cuenta publicitaria dentro de un Business Manager al que tengas acceso."
 echo "  Se abre el navegador para iniciar sesión en Meta."
@@ -155,7 +155,20 @@ if [[ ! "${R:-S}" =~ ^[nN] ]]; then
 else warn "Meta Ads omitido"; fi
 
 # ════════════════════════════════════════════════════════════════
-step "[ 7 / 9 ]  Fathom (grabación y transcripción de llamadas)"
+step "[ 7 / 10 ]  Apify (scraping e inteligencia competitiva)"
+# ════════════════════════════════════════════════════════════════
+echo "  Apify corre los scrapers (Instagram, TikTok, Google, Meta Ad Library…) que alimentan la inteligencia."
+echo "  Token: https://console.apify.com/settings/integrations → API tokens → copiá el token."
+echo ""
+ask "Token de API de Apify (Enter para saltar):"; APIFY_TOKEN="$(leer_secreto)"
+if [[ -n "$APIFY_TOKEN" ]]; then
+  claude mcp remove -s user apify >/dev/null 2>&1 || true
+  claude mcp add --transport http -s user apify "https://mcp.apify.com" \
+    --header "Authorization: Bearer $APIFY_TOKEN" >/dev/null && ok "MCP Apify configurado"
+else warn "Apify omitido"; fi
+
+# ════════════════════════════════════════════════════════════════
+step "[ 8 / 10 ]  Fathom (grabación y transcripción de llamadas)"
 # ════════════════════════════════════════════════════════════════
 echo "  Fathom se conecta desde claude.ai y Claude Code lo toma solo:"
 echo "  1. Abrí https://claude.ai/settings/connectors"
@@ -165,7 +178,7 @@ echo ""
 pausa
 
 # ════════════════════════════════════════════════════════════════
-step "[ 8 / 9 ]  Discord (Claude te responde por DM desde tu bot)"
+step "[ 9 / 10 ]  Discord (Claude te responde por DM desde tu bot)"
 # ════════════════════════════════════════════════════════════════
 echo "  1. https://discord.com/developers/applications → New Application → nombre."
 echo "  2. Bot → activá 'Message Content Intent' → Reset Token → copiá el token."
@@ -187,7 +200,7 @@ if [[ -n "$DISCORD_TOKEN" ]]; then
 else warn "Discord omitido"; DISCORD_LISTO=0; fi
 
 # ════════════════════════════════════════════════════════════════
-step "[ 9 / 9 ]  ElevenLabs (opcional — voz y audio)"
+step "[ 10 / 10 ]  ElevenLabs (opcional — voz y audio)"
 # ════════════════════════════════════════════════════════════════
 ask "API key de ElevenLabs (Enter para saltar):"; EL_KEY="$(leer_secreto)"
 if [[ -n "$EL_KEY" ]]; then

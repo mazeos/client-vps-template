@@ -1,0 +1,2 @@
+8 0 * * * root docker image prune -af --filter "until=24h" > /dev/null 2>&1
+40 1 * * 1 root docker builder prune -f > /dev/null 2>&1

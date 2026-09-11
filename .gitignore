@@ -1,2 +1,4 @@
-docker/.env
-*.DS_Store
+.env
+*.env
+acme.json
+.DS_Store

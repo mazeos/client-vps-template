@@ -1,0 +1,16 @@
+# Se suma al docker-compose.yml oficial de Supabase: expone Kong por Traefik.
+services:
+  kong:
+    networks:
+      traefik-public: {}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.http.routers.supabase-kong.rule=Host(`supabase.${DOMAIN}`)
+      - traefik.http.routers.supabase-kong.entrypoints=websecure
+      - traefik.http.routers.supabase-kong.tls.certresolver=letsencrypt
+      - traefik.http.services.supabase-kong.loadbalancer.server.port=8000
+
+networks:
+  traefik-public:
+    external: true

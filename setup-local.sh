@@ -1,6 +1,6 @@
 #!/bin/bash
-# setup-local.sh — Configura tu Mac para trabajar con el VPS
-# Instala Claude Code y configura todos los MCPs.
+# setup-local.sh — Configura tu Mac/Linux para trabajar con el VPS
+# Instala Claude Code y configura los MCPs (n8n, Notion, GoHighLevel). El de Obsidian lo hace el vault template.
 set -e
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -22,7 +22,7 @@ echo -e "${BOLD}${CYAN}╚══════════════════
 echo ""
 echo "  Instala Claude Code y configura los MCPs en tu máquina."
 echo ""
-read -p "  Presiona Enter para comenzar..."
+read -p "  Presiona Enter para comenzar..." < /dev/tty
 
 # ════════════════════════════════════════════════════════════════
 step "[ PASO 1 / 4 ]  Instalar prerrequisitos"
@@ -66,13 +66,13 @@ echo "  Ingresa los datos del VPS que acabas de configurar."
 echo ""
 
 ask "Dominio principal del VPS (ej: miempresa.com):"
-read -p "  → " DOMAIN
+read -p "  → " DOMAIN < /dev/tty
 while [[ -z "$DOMAIN" ]]; do
-  err "No puede estar vacío."; read -p "  → " DOMAIN
+  err "No puede estar vacío."; read -p "  → " DOMAIN < /dev/tty
 done
 
 ask "IP del VPS (para configurar SSH):"
-read -p "  → " VPS_IP
+read -p "  → " VPS_IP < /dev/tty
 
 # ════════════════════════════════════════════════════════════════
 step "[ PASO 3 / 4 ]  Configurar MCPs"
@@ -102,7 +102,7 @@ echo -e "  ${BOLD}[MCP 1/7] n8n${NC} — https://n8n.$DOMAIN"
 echo "  API Key: n8n → Settings → n8n API → Create an API key"
 echo ""
 ask "n8n API Key (Enter para saltar):"
-read -p "  → " N8N_KEY
+read -p "  → " N8N_KEY < /dev/tty
 if [[ -n "$N8N_KEY" ]]; then
   add_mcp "n8n" '{"command":"npx","args":["-y","n8n-mcp-server"],"env":{"N8N_URL":"https://n8n.'"$DOMAIN"'","N8N_API_KEY":"'"$N8N_KEY"'"}}'
   ok "MCP n8n configurado → https://n8n.$DOMAIN"
@@ -113,14 +113,15 @@ echo ""
 
 # ── MCP: Obsidian (local) ─────────────────────────────────────
 echo -e "  ${BOLD}[MCP 2/7] Obsidian${NC} — local"
+echo "  Si vas a instalar el vault template, SALTÁ este paso (lo configura él)."
 echo "  Requiere plugin 'Local REST API' activo en Obsidian."
 echo "  API Key: Obsidian → Settings → Local REST API → API Key"
 echo ""
 ask "Ruta de tu vault de Obsidian (ej: ~/Documents/Obsidian Vault):"
-read -p "  → " VAULT_PATH
+read -p "  → " VAULT_PATH < /dev/tty
 VAULT_PATH="${VAULT_PATH:-$HOME/Documents/Obsidian Vault}"
 ask "Obsidian API Key (Enter para saltar):"
-read -p "  → " OBS_KEY
+read -p "  → " OBS_KEY < /dev/tty
 if [[ -n "$OBS_KEY" ]]; then
   add_mcp "obsidian" '{"command":"npx","args":["-y","mcp-obsidian","'"$VAULT_PATH"'"],"env":{"OBSIDIAN_API_KEY":"'"$OBS_KEY"'"}}'
   ok "MCP Obsidian configurado"
@@ -134,7 +135,7 @@ echo -e "  ${BOLD}[MCP 3/7] Notion${NC}"
 echo "  API Key: https://www.notion.so/my-integrations → Nueva integración"
 echo ""
 ask "Notion API Key (Enter para saltar):"
-read -p "  → " NOTION_KEY
+read -p "  → " NOTION_KEY < /dev/tty
 if [[ -n "$NOTION_KEY" ]]; then
   add_mcp "notion" '{"command":"npx","args":["-y","@notionhq/notion-mcp-server"],"env":{"OPENAPI_MCP_HEADERS":"{\"Authorization\":\"Bearer '"$NOTION_KEY"'\",\"Notion-Version\":\"2022-06-28\"}"}}'
   ok "MCP Notion configurado"
@@ -160,10 +161,10 @@ echo "  git clone https://github.com/mastanley13/GoHighLevel-MCP.git ~/ghl-mcp-s
 echo "  cd ~/ghl-mcp-server && npm install && npm run build"
 echo ""
 ask "GHL API Key (Enter para saltar):"
-read -p "  → " GHL_KEY
+read -p "  → " GHL_KEY < /dev/tty
 if [[ -n "$GHL_KEY" ]]; then
   ask "GHL Location ID:"
-  read -p "  → " GHL_LOC
+  read -p "  → " GHL_LOC < /dev/tty
   if [[ -n "$GHL_LOC" ]]; then
     add_mcp "ghl" '{"command":"node","args":["'"$HOME"'/ghl-mcp-server/dist/server.js"],"env":{"GHL_API_KEY":"'"$GHL_KEY"'","GHL_LOCATION_ID":"'"$GHL_LOC"'"}}'
     ok "MCP GHL configurado"
@@ -208,7 +209,7 @@ echo ""
 echo -e "${BOLD}  Próximos pasos:${NC}"
 echo "  1. Verifica MCPs activos: claude mcp list"
 echo "  2. Configura tu vault de Obsidian:"
-echo "     curl -sSL https://raw.githubusercontent.com/mazeos/client-vault-template/main/setup.sh | bash"
+echo "     curl -sSL https://raw.githubusercontent.com/mazeos/client-vault-template/main/setup.sh -o setup-vault.sh && bash setup-vault.sh"
 echo "  3. Corre: claude"
 echo ""
 [[ -n "$VPS_IP" ]] && echo -e "  Tu VPS: ${BOLD}$VPS_IP${NC} | Dominio: ${BOLD}$DOMAIN${NC}" && echo ""

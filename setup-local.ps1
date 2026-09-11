@@ -209,7 +209,7 @@ Write-Host ""
 Write-Host "  Próximos pasos:" -ForegroundColor White
 Write-Host "  1. Verifica MCPs activos: claude mcp list"
 Write-Host "  2. Configura tu vault de Obsidian:"
-Write-Host "     irm https://raw.githubusercontent.com/mazeos/client-vault-template/main/setup.ps1 | iex"
+Write-Host "     irm https://raw.githubusercontent.com/mazeos/client-vault-template/main/setup.ps1 -OutFile $env:TEMP\setup-vault.ps1; & $env:TEMP\setup-vault.ps1"
 Write-Host "  3. Corre: claude"
 Write-Host ""
 if ($VpsIp) { Write-Host "  Tu VPS: $VpsIp | Dominio: $Domain" }

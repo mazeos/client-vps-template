@@ -14,6 +14,16 @@ Réplica del servidor de [Maze Funnels](https://mazefunnels.io): **Traefik + Sup
 
 Además: firewall (solo 22, 80, 443), rotación de logs de Docker, backup diario de Supabase (30 días) y limpieza semanal de imágenes. Todo lo que instalás después (apps propias, otros servicios) se enchufa a la red `traefik-public` con 5 labels y sale con SSL solo.
 
+## Instalación asistida por tu IA
+
+Si ya tenés Claude Code, no hace falta seguir los pasos a mano: abrí `claude` y pegale esto:
+
+```
+Leé https://raw.githubusercontent.com/mazeos/client-vps-template/main/GUIA-IA.md y seguila al pie de la letra: primero auditá lo que tengo, mostrame el plan y vamos un paso a la vez.
+```
+
+La [guía para la IA](GUIA-IA.md) hace una auditoría de lo que ya tenés, arma un plan y te acompaña paso a paso.
+
 ## Requisitos
 
 - Cuenta de Claude (Pro, Max o Team) con Claude Code.
